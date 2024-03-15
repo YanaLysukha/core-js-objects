@@ -374,32 +374,80 @@ function group(array, keySelector, valueSelector) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  resultString: '',
+  order: 0,
+  hasId: false,
+  hasElement: false,
+  hasPseudoelement: false,
+
+  checkOrder(order) {
+    if (order < this.order) {
+      throw new Error(
+        'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
+      );
+    }
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  checkElements(element) {
+    if (
+      (element === 'element' && this.hasElement === true) ||
+      (element === 'id' && this.hasId === true) ||
+      (element === 'pseudoElement' && this.hasPseudoelement === true)
+    ) {
+      throw new Error(
+        'Element, id and pseudo-element should not occur more then one time inside the selector'
+      );
+    }
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  addElement(element, order, type) {
+    this.checkElements(type);
+    this.checkOrder(order);
+    const newObj = Object.create(this);
+    newObj.resultString += element;
+    newObj.order = order;
+    return newObj;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  element(value) {
+    const obj = this.addElement(value, 0, 'element');
+    obj.hasElement = true;
+    return obj;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    const obj = this.addElement(`#${value}`, 1, 'id');
+    obj.hasId = true;
+    return obj;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    return this.addElement(`.${value}`, 2, 'class');
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    return this.addElement(`[${value}]`, 3, 'attr');
+  },
+
+  pseudoClass(value) {
+    return this.addElement(`:${value}`, 4, 'pseudoClass');
+  },
+
+  pseudoElement(value) {
+    const obj = this.addElement(`::${value}`, 5, 'pseudoElement');
+    obj.hasPseudoelement = true;
+    return obj;
+  },
+
+  combine(selector1, combinator, selector2) {
+    this.resultString = `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
+    return this;
+  },
+
+  stringify() {
+    const result = this.resultString;
+    this.resultString = '';
+    return result;
   },
 };
 
